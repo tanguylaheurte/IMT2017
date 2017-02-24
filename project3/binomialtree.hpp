@@ -40,8 +40,7 @@ namespace QuantLib {
                        Time end,
                        Size steps)
         : Tree<T>(steps+1) {
-            x0_ = process->x0(); std::cout 
-<< "hello" << std::endl;
+            x0_ = process->x0(); 
             dt_ = end/steps;
             driftPerStep_ = process->drift(0.0, x0_) * dt_;
         }
@@ -68,7 +67,7 @@ namespace QuantLib {
                         Size steps)
         : BinomialTree_2<T>(process, end, steps) {}
         Real underlying(Size i, Size index) const {
-            BigInteger j = 2*BigInteger(index) - BigInteger(i); //We have to modify this to get the good amount of nods at each step
+            BigInteger j = 2*BigInteger(index) - BigInteger(i+2); // j=j-2 to center the nods
             // exploiting the forward value tree centering
             return this->x0_*std::exp(i*this->driftPerStep_ + j*this->up_);
         }
@@ -89,7 +88,7 @@ namespace QuantLib {
                         Size steps)
         : BinomialTree_2<T>(process, end, steps) {}
         Real underlying(Size i, Size index) const {
-            BigInteger j = 2*BigInteger(index) - BigInteger(i); //We have to modify this to get the good amount of nods at each step
+            BigInteger j = 2*BigInteger(index) - BigInteger(i+2); // j=j-2 to center the nods
             // exploiting equal jump and the x0_ tree centering
             return this->x0_*std::exp(j*this->dx_);
         }
