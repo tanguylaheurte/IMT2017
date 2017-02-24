@@ -5,16 +5,13 @@
  Copyright (C) 2002, 2003 RiskMap srl
  Copyright (C) 2003, 2004, 2005, 2007 StatPro Italia srl
  Copyright (C) 2007 Affine Group Limited
-
  This file is part of QuantLib, a free-software/open-source library
  for financial quantitative analysts and developers - http://quantlib.org/
-
  QuantLib is free software: you can redistribute it and/or modify it
  under the terms of the QuantLib license.  You should have received a
  copy of the license along with this program; if not, please email
  <quantlib-dev@lists.sf.net>. The license is also available online at
  <http://quantlib.org/license.shtml>.
-
  This program is distributed in the hope that it will be useful, but WITHOUT
  ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS
  FOR A PARTICULAR PURPOSE.  See the license for more details.
@@ -27,7 +24,7 @@
 #ifndef binomial_engine_hpp
 #define binomial_engine_hpp
 
-#include <ql/methods/lattices/binomialtree.hpp>
+#include "binomialtree.hpp"
 #include <ql/methods/lattices/bsmlattice.hpp>
 #include <ql/math/distributions/normaldistribution.hpp>
 #include <ql/pricingengines/vanilla/discretizedvanillaoption.hpp>
@@ -35,15 +32,14 @@
 #include <ql/processes/blackscholesprocess.hpp>
 #include <ql/termstructures/yield/flatforward.hpp>
 #include <ql/termstructures/volatility/equityfx/blackconstantvol.hpp>
+#include <iostream>
 
 namespace QuantLib {
 
     //! Pricing engine for vanilla options using binomial trees
     /*! \ingroup vanillaengines
-
         \test the correctness of the returned values is tested by
               checking it against analytic results.
-
         \todo Greeks are not overly accurate. They could be improved
               by building a tree so that it has three points at the
               current time. The value would be fetched from the middle
@@ -61,6 +57,7 @@ namespace QuantLib {
                        "at least 2 time steps required, "
                        << timeSteps << " provided");
             registerWith(process_);
+            std::cout<< "hello \n" ;
         }
         void calculate() const;
       private:
@@ -112,7 +109,7 @@ namespace QuantLib {
                                       process_->stateVariable(),
                                       flatDividends, flatRiskFree, flatVol));
 
-        TimeGrid grid(maturity, timeSteps_);
+        TimeGrid grid(maturity, timeSteps_); 
 
         boost::shared_ptr<T> tree(new T(bs, maturity, timeSteps_,
                                         payoff->strike()));
@@ -127,42 +124,33 @@ namespace QuantLib {
         // Partial derivatives calculated from various points in the
         // binomial tree 
         // (see J.C.Hull, "Options, Futures and other derivatives", 6th edition, pp 397/398)
+        
+   
 
-        // Rollback to third-last step, and get underlying prices (s2) &
-        // option values (p2) at this point
-        option.rollback(grid[2]);
-        Array va2(option.values());
-        QL_ENSURE(va2.size() == 3, "Expect 3 nodes in grid at second step");
-        Real p2u = va2[2]; // up
-        Real p2m = va2[1]; // mid
-        Real p2d = va2[0]; // down (low)
-        Real s2u = lattice->underlying(2, 2); // up price
-        Real s2m = lattice->underlying(2, 1); // middle price
-        Real s2d = lattice->underlying(2, 0); // down (low) price
+
+        // Rollback to last step and get the values of the 3 first nods
+        option.rollback(grid[0]); // rollnack to step 0
+        Array va0(option.values());
+        std::cout << "step 0 : size of : " <<  va0.size() << std::endl;
+        QL_ENSURE(va0.size() == 3, "Expect 3 nodes in grid at step 0"); //error here at the moment
+        Real p0u = va0[2]; // Up value of the option at step 0
+        Real p0m = va0[1]; // Value of the option at step 0
+        Real p0d = va0[0]; // Down value of the option at step 0
+        Real s0u = lattice->underlying(0, 2); 
+        Real s0m = lattice->underlying(0, 1); 
+        Real s0d = lattice->underlying(0, 0); 
+        
+
+
 
         // calculate gamma by taking the first derivate of the two deltas
-        Real delta2u = (p2u - p2m)/(s2u-s2m);
-        Real delta2d = (p2m-p2d)/(s2m-s2d);
-        Real gamma = (delta2u - delta2d) / ((s2u-s2d)/2);
-
-        // Rollback to second-last step, and get option values (p1) at
-        // this point
-        option.rollback(grid[1]);
-        Array va(option.values());
-        QL_ENSURE(va.size() == 2, "Expect 2 nodes in grid at first step");
-        Real p1u = va[1];
-        Real p1d = va[0];
-        Real s1u = lattice->underlying(1, 1); // up (high) price
-        Real s1d = lattice->underlying(1, 0); // down (low) price
-
-        Real delta = (p1u - p1d) / (s1u - s1d);
-
-        // Finally, rollback to t=0
-        option.rollback(0.0);
-        Real p0 = option.presentValue();
+        Real delta0u = (p0u - p0m)/(s0u-s0m);
+        Real delta0d = (p0m-p0d)/(s0m-s0d);
+        Real gamma = (delta0u - delta0d) / ((s0u-s0d)/2);
+        Real delta = delta0u/2 + delta0d/2;
 
         // Store results
-        results_.value = p0;
+        results_.value = p0m;
         results_.delta = delta;
         results_.gamma = gamma;
         results_.theta = blackScholesTheta(process_,
