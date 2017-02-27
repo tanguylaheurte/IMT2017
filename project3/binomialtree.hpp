@@ -40,7 +40,7 @@ namespace QuantLib {
                        Time end,
                        Size steps)
         : Tree<T>(steps+1) {
-            x0_ = process->x0(); 
+            x0_ = process->x0();
             dt_ = end/steps;
             driftPerStep_ = process->drift(0.0, x0_) * dt_;
         }
@@ -67,7 +67,8 @@ namespace QuantLib {
                         Size steps)
         : BinomialTree_2<T>(process, end, steps) {}
         Real underlying(Size i, Size index) const {
-            BigInteger j = 2*BigInteger(index) - BigInteger(i+2); // j=j-2 to center the nods
+        // index=[0,size-1] and we want at t=0, j=0, j=2 and j=-2 so we need to subtract BigInteger(2)
+            BigInteger j = 2*BigInteger(index) - BigInteger(i)-BigInteger(2);
             // exploiting the forward value tree centering
             return this->x0_*std::exp(i*this->driftPerStep_ + j*this->up_);
         }
@@ -88,7 +89,8 @@ namespace QuantLib {
                         Size steps)
         : BinomialTree_2<T>(process, end, steps) {}
         Real underlying(Size i, Size index) const {
-            BigInteger j = 2*BigInteger(index) - BigInteger(i+2); // j=j-2 to center the nods
+        // index=[0,size-1] and we want at t=0, j=0, j=2 and j=-2 so we need to subtract BigInteger(2)
+            BigInteger j = 2*BigInteger(index) - BigInteger(i)-BigInteger(2); 
             // exploiting equal jump and the x0_ tree centering
             return this->x0_*std::exp(j*this->dx_);
         }
@@ -156,8 +158,9 @@ namespace QuantLib {
                Size steps,
                Real strike);
         Real underlying(Size i, Size index) const {
-            return x0_ * std::pow(down_, Real(BigInteger(i)-BigInteger(index)))
-                       * std::pow(up_, Real(index));
+        //at the begining we want 3 nods with xo*u/d, xo*1 and xo*d/u 
+            return x0_ * std::pow(down_, Real(BigInteger(i+1)-BigInteger(index)))
+                       * std::pow(up_, Real(BigInteger(index-1)));      
         };
         Real probability(Size, Size, Size branch) const {
             return (branch == 1 ? pu_ : pd_);
@@ -175,8 +178,9 @@ namespace QuantLib {
                        Size steps,
                        Real strike);
         Real underlying(Size i, Size index) const {
-            return x0_ * std::pow(down_, Real(BigInteger(i)-BigInteger(index)))
-                       * std::pow(up_, Real(index));
+        //at the begining we want 3 nods with xo*u/d, xo*1 and xo*d/u 
+            return x0_ * std::pow(down_, Real(BigInteger(i+1)-BigInteger(index)))
+                       * std::pow(up_, Real(BigInteger(index-1)));    
         }
         Real probability(Size, Size, Size branch) const {
             return (branch == 1 ? pu_ : pd_);
@@ -193,8 +197,9 @@ namespace QuantLib {
                  Size steps,
                  Real strike);
         Real underlying(Size i, Size index) const {
-            return x0_ * std::pow(down_, Real(BigInteger(i)-BigInteger(index)))
-                       * std::pow(up_, Real(index));
+        //at the begining we want 3 nods with xo*u/d, xo*1 and xo*d/u 
+            return x0_ * std::pow(down_, Real(BigInteger(i+1)-BigInteger(index)))
+                       * std::pow(up_, Real(BigInteger(index-1)));   
         }
         Real probability(Size, Size, Size branch) const {
             return (branch == 1 ? pu_ : pd_);
