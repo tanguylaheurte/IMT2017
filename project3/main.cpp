@@ -1,5 +1,3 @@
-
-
 #include "binomialtree.hpp"
 #include "binomialengine.hpp"
 #include <ql/stochasticprocess.hpp>
@@ -8,6 +6,8 @@
 #include <iostream>
 #include <ql/time/calendars/target.hpp>
 #include <boost/timer.hpp>
+#include <ctime> 
+
 using namespace QuantLib;
 
 int main() {
@@ -29,7 +29,7 @@ int main() {
         Spread dividendYield = 0.00;
         Rate riskFreeRate = 0.06;
         Volatility volatility = 0.20;
-        Date maturity(17, May, 1999);
+        Date maturity(17, May, 2002);
         DayCounter dayCounter = Actual365Fixed();
 
         std::cout << "Option type = "  << type << std::endl;
@@ -88,8 +88,18 @@ int main() {
                   << std::setw(widths[1]) << std::left << europeanOption.NPV()
                   << std::endl;
 		
+		Real deltaBS=europeanOption.delta();
+ 		Real gammaBS=europeanOption.gamma();
 
-		method = "Binomial Cox-Ross-Rubinstein";
+		std::cout << "delta via BS: " << deltaBS << std::endl;
+		std::cout << "Gamma via BS: " << gammaBS << std::endl << std::endl;
+		
+		//start chrono		
+		const clock_t begin_time = clock();
+		
+
+
+		method = "Binomial Cox-Ross-Rubinstein_2";
         europeanOption.setPricingEngine(boost::shared_ptr<PricingEngine>(
                       new BinomialVanillaEngine_2<CoxRossRubinstein_2>(bsmProcess,
                                                                    timeSteps)));
@@ -98,23 +108,47 @@ int main() {
                   << std::fixed
                   << std::setw(widths[1]) << std::left << europeanOption.NPV()
                   << std::endl;
-		//double seconds = timer.elapsed();
-        //Integer hours = int(seconds/3600);
-        //seconds -= hours * 3600;
-        //Integer minutes = int(seconds/60);
-        //seconds -= minutes * 60;
-        /*std::cout << " \nRun completed in ";tion de l'État, la compétitivité des entreprises et les changements sur le marché du travail. Pas de révolutions sur aucun des trois chapitres, mais des évolutions significatives"
-        if (hours > 0)
-            std::cout << hours << " h ";
-        if (hours > 0 || minutes > 0)
-            std::cout << minutes << " m ";
-        std::cout << std::fixed << std::setprecision(0)
-                  << seconds << " s\n" << std::endl;*/
-//affichage du delta et du gamma
+		
+		Real deltaBinomial=europeanOption.delta();
+ 		Real gammaBinomial=europeanOption.gamma();
+		Real diffDelta=deltaBinomial-deltaBS;
+ 		Real diffgamma=gammaBinomial-gammaBS;
 
-  		std::cout << europeanOption.delta() << std::endl;
-		std::cout << europeanOption.gamma() << std::endl;
-		std::cout << "al" << std::endl;
+		std::cout << "delta via BinomialCRR: " << deltaBinomial << std::endl;	
+
+		std::cout << "Gamma via BinomialCRR: " << gammaBinomial << std::endl << std::endl;
+		
+		std::cout << "deltaBinomialCRR - deltaBS = " << diffDelta << std::endl;
+		std::cout << "gammaBinomialCRR - gammaBS = " << diffgamma << std::endl << std::endl;
+	
+		std::cout << "Time spent to build the tree in sec : " <<  float( clock () - begin_time) /  CLOCKS_PER_SEC << std::endl << std::endl;
+
+		//start chrono		
+		const clock_t begin_time2 = clock();
+
+		method = "Joshi_2";
+        europeanOption.setPricingEngine(boost::shared_ptr<PricingEngine>(
+                      new BinomialVanillaEngine_2<Joshi4_2>(bsmProcess,
+                                                                   timeSteps)));
+		
+        std::cout << std::setw(widths[0]) << std::left << method
+                  << std::fixed
+                  << std::setw(widths[1]) << std::left << europeanOption.NPV()
+                  << std::endl;
+		
+		Real deltaBinomialJ=europeanOption.delta();
+ 		Real gammaBinomialJ=europeanOption.gamma();
+		diffDelta=deltaBinomialJ-deltaBS;
+ 		diffgamma=gammaBinomialJ-gammaBS;
+
+		std::cout << "delta via BinomialJ: " << deltaBinomialJ << std::endl;	
+
+		std::cout << "Gamma via BinomialJ: " << gammaBinomialJ << std::endl << std::endl;
+		
+		std::cout << "deltaBinomialJ - deltaBS = " << diffDelta << std::endl ;
+		std::cout << "gammaBinomialJ - gammaBS = " << diffgamma << std::endl << std::endl;
+	
+		std::cout << "Time spent to build the tree in sec : " <<  float( clock () - begin_time2) /  CLOCKS_PER_SEC << std::endl << std::endl;
         return 0;
 
     } catch (std::exception& e) {
